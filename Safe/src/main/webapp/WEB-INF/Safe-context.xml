@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xmlns:mvc="http://www.springframework.org/schema/mvc"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xmlns:jpa="http://www.springframework.org/schema/data/jpa"
+       xmlns:security="http://www.springframework.org/schema/security"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans-2.5.xsd
+       http://www.springframework.org/schema/context
+       http://www.springframework.org/schema/context/spring-context.xsd
+       http://www.springframework.org/schema/tx
+       http://www.springframework.org/schema/tx/spring-tx.xsd
+       http://www.springframework.org/schema/data/jpa
+       http://www.springframework.org/schema/data/jpa/spring-jpa.xsd
+       http://www.springframework.org/schema/security
+       http://www.springframework.org/schema/security/spring-security.xsd
+       http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.2.xsd
+       http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-3.2.xsd
+       http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.2.xsd
+       http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.2.xsd">
+
+    <context:property-placeholder location="file:${safebank.ini}"/>
+    <context:annotation-config/>
+    <tx:annotation-driven/>
+    <jpa:repositories base-package="com.xb.safe.repo"/>
+
+    <bean id="logFactory" class="com.xb.kurilo.LogFactory">
+        <constructor-arg index="0" value="${logger.home}"/>
+        <constructor-arg index="1" value="5MB"/>
+        <constructor-arg index="2" value="3"/>
+        <constructor-arg index="3" value="%r %d{ISO8601} %l %n %p: %m %n %n"/>
+    </bean>
+
+    <bean id="transactionManager" class="org.springframework.orm.jpa.JpaTransactionManager">
+        <property name="entityManagerFactory" ref="entityManagerFactory"/>
+        <property name="jpaDialect">
+            <bean class="org.springframework.orm.jpa.vendor.HibernateJpaDialect"/>
+        </property>
+    </bean>
+
+    <bean id="dataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource"
+          p:driverClassName="${jdbc.driverClass}"
+          p:url="${jdbc.url}"
+          p:username="${jdbc.user}"
+          p:password="${jdbc.password}"/>
+
+    <bean id="entityManagerFactory" class="org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean">
+        <property name="dataSource" ref="dataSource"/>
+        <property name="persistenceProviderClass" value="org.hibernate.ejb.HibernatePersistence"/>
+        <property name="jpaVendorAdapter">
+            <bean class="org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter"/>
+        </property>
+        <property name="jpaProperties">
+            <props>
+                <prop key="hibernate.dialect">${jdbc.dialect}</prop>
+                <prop key="hibernate.show_sql">false</prop>
+            </props>
+        </property>
+        <property name="packagesToScan">
+            <list>
+                <value>com.xb.safe.domain</value>
+            </list>
+        </property>
+    </bean>
+
+    <bean id="converterService" class="org.springframework.context.support.ConversionServiceFactoryBean">
+        <property name="converters">
+            <set>
+                <bean class="com.xb.safe.util.DozerConverter">
+                    <property name="mapper">
+                        <bean class="org.dozer.DozerBeanMapper">
+                            <property name="mappingFiles">
+                                <list>
+                                    <value>dozer-bean-mappings.xml</value>
+                                </list>
+                            </property>
+                        </bean>
+                    </property>
+                </bean>
+            </set>
+        </property>
+    </bean>
+
+    <bean class="com.xb.danilov.sessionmanager.client.SessionManagerClient">
+        <constructor-arg index="0" value="${sm.url}"/>
+    </bean>
+
+    <bean id="personalService" class="com.xb.danilov.personal.client.PersonalClient">
+        <constructor-arg value="${personal.url}"/>
+    </bean>
+
+    <bean id="daoService" class="com.xb.safe.service.DaoService"/>
+    <bean id="excelService" class="com.xb.safe.service.ExcelService"/>
+    <bean id="reportService" class="com.xb.safe.service.ReportService"
+    p:chCloseOrgn_filepath="${chCloseOrgn}"
+    p:chOrign_filepath="${chOrign}"
+    p:closeOrgn_filepath="${closeOrgn}"
+    p:orign_filepath="${orign}"
+    p:repaymentDebtsOroginal_filepath="${repaymentDebtsOroginal}"
+    p:repaymentDebtsChange_filepath="${repaymentDebtsChange}"
+    p:prolongContractOriginal_filepath="${prolongContractOriginal}"
+    p:prolongContractChange_filepath="${prolongContractChange}"
+    />
+    
+    <bean id="springApplicationContext" class="com.xb.safe.security.SpringApplicationContext"/>
+    <bean id="customAuthenticationProvider" class="com.xb.safe.security.CustomAuthenticationProvider"/>
+
+    <security:authentication-manager>
+        <security:authentication-provider ref="customAuthenticationProvider"/>
+    </security:authentication-manager>
+
+    <security:http auto-config='true' use-expressions='true'>
+        <security:intercept-url pattern='/login*' access="permitAll"/>
+        <security:intercept-url pattern='/xml*' access="permitAll"/>
+        <security:intercept-url pattern='/css/*' access="permitAll"/>
+        <security:intercept-url pattern='/lib/*' access="permitAll"/>
+        <security:intercept-url pattern='/js/*' access="permitAll"/>
+        <security:intercept-url pattern='/img/*' access="permitAll"/>
+        <security:intercept-url pattern='/fonts/*' access="permitAll"/>
+        <security:intercept-url pattern="/controldeal*" access="hasRole('controller')"/>
+        <security:intercept-url pattern="/safeedit*" access="hasRole('controller')"/>
+        <security:intercept-url pattern='/**' access="isAuthenticated()"/>
+        <security:form-login login-page='/login' default-target-url='/contractsinfo' always-use-default-target='true'
+                             authentication-failure-url='/loginfailed'/>
+    </security:http>
+</beans>

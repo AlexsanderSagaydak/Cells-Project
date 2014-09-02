@@ -1,0 +1,41 @@
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@taglib prefix="sec" uri="http://www.springframework.org/security/tags" %>
+<%@ page pageEncoding="UTF-8" %>
+<br>
+<nav class="navbar navbar-default" role="navigation">
+    <div class="container-fluid">
+        <div class="navbar-header">
+            <a class="navbar-brand" href="#">СЕЙФЫ</a>
+        </div>
+        <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+            <div>
+                <ul class="nav navbar-nav">
+                    <li <c:if test="${activeCC}">class="active"</c:if>><a href="contractcreate">Заключить договор</a></li>
+                        <li><a href="safes">Сейфы</a></li>
+                        <li <c:if test="${activeClients}">class="active"</c:if>><a href="clients">Клиенты</a></li>
+                    <li <c:if test="${activeContract}">class="active"</c:if>><a href="contractsinfo">Контракты</a></li>
+                        <sec:authorize access="hasAnyRole('controller')">
+                        <li><a href="controldeal">Перейти в отделение</a></li>
+                        </sec:authorize>
+                        <li><a href="departmentCard">КО</a></li>
+                    <li class="dropdown">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">Отчеты <span class="caret"></span></a>
+                        <ul class="dropdown-menu" role="menu">
+                            <li><a href="reportDelay">Просрочка</a></li>
+                            <li><a href="closingCells">Прогноз закрытия</a></li>
+                            <li class="divider"></li>
+                                <sec:authorize access="hasAnyRole('controller')">
+                                <li><a href="filling-profit">Заполняемость</a></li>
+                                <li><a href="contractRegistration">Регистрация договоров</a></li>
+                                </sec:authorize>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+            <ul class="nav navbar-nav navbar-right">
+                <li><a href="#">${user}</a></li>
+                <li><a href="<c:url value="/j_spring_security_logout"/>">Выход</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
